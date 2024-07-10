@@ -1,0 +1,24 @@
+#FROM unityci/editor:ubuntu-2022.1.20f1-base-1
+FROM nvidia/cuda:12.4.1-devel-ubuntu20.04
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y x11-apps build-essential libgl1-mesa-glx libglib2.0-0 libx11-dev xvfb libnvidia-encode-555 cuda mesa-utils
+
+ENV XDG_RUNTIME_DIR=/tmp/runtime
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64
+ENV PATH=/usr/local/cuda/bin:$PATH
+ENV NVIDIA_DRIVER_CAPABALITIES=all
+ENV NVIDIA_VISIBLE_DEVICES=all
+
+RUN mkdir -p /tmp/runtime && chmod 700 /tmp/runtime
+
+COPY unityapp /app
+
+WORKDIR /app
+
+#RUN chmod +x stream_8081.x86_64
+RUN chmod +x new.x86_64
+
+#ENTRYPOINT ["sh", "-c", "/app/stream_8081.x86_64"]  
+ENTRYPOINT ["sh", "-c", "/app/new.x86_64"]  
+
+

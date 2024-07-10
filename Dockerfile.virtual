@@ -1,0 +1,55 @@
+FROM nvidia/cuda:12.4.1-devel-ubuntu20.04 
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y \
+    x11-apps \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libx11-dev \
+    xvfb \
+    libnvidia-encode-555 cuda
+
+RUN apt-get install -y g++ grub2
+RUN apt-get install -y linux-headers-$(uname -r)
+RUN apt-get install -y linux-headers-$(uname -r)
+
+RUN echo "blacklist vga16fb" | tee -a /etc/modprobe.d/blacklist.conf && \
+    echo "blacklist nouveau" | tee -a /etc/modprobe.d/blacklist.conf && \
+    echo "blacklist rivafb" | tee -a /etc/modprobe.d/blacklist.conf && \
+    echo "blacklist nvidiafb" | tee -a /etc/modprobe.d/blacklist.conf && \
+    echo "blacklist rivatv" | tee -a /etc/modprobe.d/blacklist.conf
+
+RUN if [ ! -f /etc/default/grub ]; then touch /etc/default/grub; fi && \
+    sed -i '/^GRUB_CMDLINE_LINUX_DEFAULT=/a GRUB_CMDLINE_LINUX="rdblacklist=nouveau"' /etc/default/grub
+
+RUN grub-mkconfig -o /boot/grub/grub.cfg
+
+
+COPY NVIDIA-Linux-x86_64-550.90.07.run /app
+RUN chmod +x NVIDIA-Linux-x86_64-550.90.07.run
+RUN /bin/sh ./NVIDIA-Linux-x86_64*.run -s --no-32bit --no-x-check
+
+
+COPY xorg.conf /etc/X11/xorg.conf
+
+ENV XDG_RUNTIME_DIR=/tmp/runtime
+ENV LD_LIBRARY_PATH=/usr/local/cuda/lib64
+ENV PATH=/usr/local/cuda/bin:$PATH
+ENV NVIDIA_DRIVER_CAPABILITIES=all
+ENV NVIDIA_VISIBLE_DEVICES=all
+
+
+RUN mkdir -p /tmp/runtime && chmod 700 /tmp/runtime
+
+COPY unityapp /app
+
+WORKDIR /app
+
+RUN chmod +x new.x86_64
+
+# Entry point to start Xvfb and then run the application
+#ENTRYPOINT ["sh", "-c", "/app/new.x86_64"]
+ENTRYPOINT ["sh", "-c", "Xvfb :0 -screen 0 1024x768x24 +extension GLX +render -noreset & export DISPLAY=:0 && exec \"$@\""]
+
+# Set the default command to run your application
+CMD ["/app/new.x86_64"]
